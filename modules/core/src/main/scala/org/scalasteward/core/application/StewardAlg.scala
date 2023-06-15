@@ -78,9 +78,9 @@ final class StewardAlg[F[_]](config: Config)(implicit
       logger.attemptError.label(util.string.lineLeftRight(label), Some(label)) {
         F.guarantee(
           repoCacheAlg.checkCache(repo).flatMap { case (data, fork) =>
-            pruningAlg.needsAttention(data).flatMap {
-              _.traverse_(states => nurtureAlg.nurture(data, fork, states.map(_.update)))
-            }
+            println(fork)
+            println(nurtureAlg)
+            pruningAlg.needsAttention(data).map(println)
           },
           gitAlg.removeClone(repo)
         )
@@ -93,9 +93,10 @@ final class StewardAlg[F[_]](config: Config)(implicit
       for {
         _ <- selfCheckAlg.checkAll
         _ <- workspaceAlg.removeAnyRunSpecificFiles
+        allRepos: Stream[F, Repo] = config.githubApp.map(getGitHubAppRepos).getOrElse(Stream.empty) ++
+          readRepos(config.reposFile)
         exitCode <-
-          (config.githubApp.map(getGitHubAppRepos).getOrElse(Stream.empty) ++
-            readRepos(config.reposFile))
+          allRepos.filter(_.repo == "amigo")
             .evalMap(repo => steward(repo).map(_.bimap(repo -> _, _ => repo)))
             .compile
             .toList
