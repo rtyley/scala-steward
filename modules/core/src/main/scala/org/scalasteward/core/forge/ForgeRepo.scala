@@ -25,9 +25,11 @@ import org.scalasteward.core.application.Config.ForgeCfg
   * that repo host- for instance, the url to view a particular file, or to diff two commits.
   */
 case class ForgeRepo(forgeType: ForgeType, repoUrl: Uri) {
-  def diffUrlFor(from: String, to: String): Uri = forgeType.diffs.forDiff(from, to)(repoUrl)
+  def diffUrlFor(from: String, to: String): Uri =
+    forgeType.diffs.amendRepoUriForDiff(from, to)(repoUrl)
 
-  def fileUrlFor(fileName: String): Uri = forgeType.files.forFile(fileName)(repoUrl)
+  def fileUrlFor(fileName: String): Uri =
+    forgeType.files.amendRepoUriForFile(fileName)(repoUrl)
 }
 
 object ForgeRepo {

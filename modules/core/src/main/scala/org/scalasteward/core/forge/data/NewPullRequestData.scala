@@ -23,7 +23,6 @@ import org.scalasteward.core.edit.EditAttempt
 import org.scalasteward.core.edit.EditAttempt.ScalafixEdit
 import org.scalasteward.core.git.{Branch, CommitMsg}
 import org.scalasteward.core.nurture.UpdateInfoUrl
-import org.scalasteward.core.nurture.UpdateInfoUrl._
 import org.scalasteward.core.repoconfig.{GroupRepoConfig, RepoConfigAlg}
 import org.scalasteward.core.util.{Details, Nel}
 
@@ -116,16 +115,7 @@ object NewPullRequestData {
   }
 
   def renderUpdateInfoUrls(updateInfoUrls: List[UpdateInfoUrl]): Option[String] =
-    Option.when(updateInfoUrls.nonEmpty) {
-      updateInfoUrls
-        .map {
-          case CustomChangelog(url)    => s"[Changelog](${url.renderString})"
-          case CustomReleaseNotes(url) => s"[Release Notes](${url.renderString})"
-          case GitHubReleaseNotes(url) => s"[GitHub Release Notes](${url.renderString})"
-          case VersionDiff(url)        => s"[Version Diff](${url.renderString})"
-        }
-        .mkString(" - ")
-    }
+    Option.when(updateInfoUrls.nonEmpty)(updateInfoUrls.map(_.asMarkdown).mkString(" - "))
 
   def fromTo(update: Update.Single): String =
     s"from `${update.currentVersion}` to `${update.nextVersion}`"

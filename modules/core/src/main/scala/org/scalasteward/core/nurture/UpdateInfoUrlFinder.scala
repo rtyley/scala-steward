@@ -18,7 +18,6 @@ package org.scalasteward.core.nurture
 
 import cats.Monad
 import cats.syntax.all._
-import org.http4s.Uri
 import org.scalasteward.core.application.Config.ForgeCfg
 import org.scalasteward.core.coursier.DependencyMetadata
 import org.scalasteward.core.data.Version
@@ -37,7 +36,9 @@ final class UpdateInfoUrlFinder[F[_]](implicit
       dependency: DependencyMetadata,
       versionUpdate: Version.Update
   ): F[List[UpdateInfoUrl]] = {
-    val updateInfoUrls: List[UpdateInfoUrl] =
+    val updateInfoUrls: List[UpdateInfoUrl] = {
+      dependency.releaseNotesUrl.map(CustomReleaseNotes -> _) ++
+
       dependency.releaseNotesUrl.toList.map(CustomReleaseNotes.apply) ++
         dependency.forgeRepo.toSeq.flatMap(forgeRepo =>
           possibleUpdateInfoUrls(forgeRepo, versionUpdate)
@@ -72,7 +73,7 @@ object UpdateInfoUrlFinder {
     possibleFilenames(baseNames)
   }
 
-  private[nurture] def possibleVersionDiffs(
+  private[nurture] def urlsForUpdate(
       repoForge: ForgeRepo,
       update: Version.Update
   ): List[VersionDiff] = for {
@@ -84,28 +85,23 @@ object UpdateInfoUrlFinder {
   private[nurture] def possibleUpdateInfoUrls(
       forgeRepo: ForgeRepo,
       update: Version.Update
-  ): List[UpdateInfoUrl] = {
-    def customUrls(wrap: Uri => UpdateInfoUrl, fileNames: List[String]): List[UpdateInfoUrl] =
-      fileNames.map(f => wrap(forgeRepo.fileUrlFor(f)))
-
-    gitHubReleaseNotesFor(forgeRepo, update.nextVersion) ++
-      customUrls(CustomReleaseNotes, possibleReleaseNotesFilenames) ++
-      customUrls(CustomChangelog, possibleChangelogFilenames) ++
-      possibleVersionDiffs(forgeRepo, update)
-  }
-
-  private def gitHubReleaseNotesFor(
-      forgeRepo: ForgeRepo,
-      version: Version
   ): List[UpdateInfoUrl] =
+    urlsForRepoAndVersion(forgeRepo, update.nextVersion) ++ urlsForRepo(forgeRepo) ++
+      urlsForUpdate(forgeRepo, update)
+
+  private def urlsForRepoAndVersion(forgeRepo: ForgeRepo, version: Version): List[UpdateInfoUrl] =
     forgeRepo.forgeType match {
       case GitHub =>
         Version.tagNames
           .map(tagName =>
-            GitHubReleaseNotes(forgeRepo.repoUrl / "releases" / "tag" / tagName(version))
+            UpdateInfoUrl(GitHubReleaseNotes, forgeRepo.repoUrl / "releases" / "tag" / tagName(version))
           )
       case _ => Nil
     }
+
+  private def urlsForRepo(forgeRepo: ForgeRepo): List[UpdateInfoUrl] =
+    possibleReleaseNotesFilenames.map(forgeRepo.fileUrlFor).map(CustomReleaseNotes) ++
+      possibleChangelogFilenames.map(forgeRepo.fileUrlFor).map(CustomChangelog)
 
   private def possibleFilenames(baseNames: List[String]): List[String] = {
     val extensions = List("md", "markdown", "rst")

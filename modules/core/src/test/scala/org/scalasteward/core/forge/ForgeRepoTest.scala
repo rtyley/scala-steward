@@ -70,12 +70,27 @@ class ForgeRepoTest extends FunSuite {
     )
   }
 
-  test("BitBucket Server url patterns") {
+  /* Note that Atlassian has stopped selling BitBucket Server, and will end support on 15th February 2024:
+   * https://www.atlassian.com/migration/assess/journey-to-cloud
+   */
+  test("BitBucket Server url patterns (until 2024?)") {
     check(
       ForgeRepo(BitbucketServer, uri"https://bitbucket-server.on-prem.com/foo/bar"),
       uri"https://bitbucket-server.on-prem.com/foo/bar/browse/README.md",
       "v1.0.0" -> "v1.0.1",
       uri"https://bitbucket-server.on-prem.com/foo/bar/compare/v1.0.1..v1.0.0#diff"
     )
+  }
+
+  test("On-Premise repo urls are retained and respected, regardless of forge type") {
+    val onPremForgeRepoUrl = uri"https://any-old-git.onprem.io/foo/bar"
+    for (forgeType <- ForgeType.all) {
+      check(
+        ForgeRepo(forgeType, onPremForgeRepoUrl),
+        onPremForgeRepoUrl / "blob" / "master" / "README.md",
+        "v2.55.0" -> "v2.56.0",
+        onPremForgeRepoUrl / "compare" / "v2.55.0...v2.56.0"
+      )
+    }
   }
 }

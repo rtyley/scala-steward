@@ -89,8 +89,8 @@ class UpdateInfoUrlFinderTest extends CatsEffectSuite with Http4sDsl[MockEff] {
     addLabels = false
   )
   private val onPremUpdateUrlFinder = new UpdateInfoUrlFinder[MockEff]
-  private val gitHubFooBarRepo = ForgeRepo(GitHub, uri"https://github.com/foo/bar/")
-  private val bitbucketFooBarRepo = ForgeRepo(Bitbucket, uri"https://bitbucket.org/foo/bar/")
+  private val gitHubFooBarRepo = ForgeRepo(GitHub, uri"https://github.com/foo/bar")
+  private val bitbucketFooBarRepo = ForgeRepo(Bitbucket, uri"https://bitbucket.org/foo/bar")
   private val gitLabFooBarRepo = ForgeRepo(GitLab, uri"https://gitlab.com/foo/bar")
 
   test("findUpdateInfoUrls: on-prem, repoUrl not found") {
@@ -117,10 +117,8 @@ class UpdateInfoUrlFinderTest extends CatsEffectSuite with Http4sDsl[MockEff] {
   }
 
   test("possibleVersionDiffs") {
-    val onPremForgeUrl = uri"https://github.onprem.io/"
-
     assertEquals(
-      possibleVersionDiffs(gitHubFooBarRepo, versionUpdate)
+      urlsForUpdate(gitHubFooBarRepo, versionUpdate)
         .map(_.url.renderString),
       List(
         s"https://github.com/foo/bar/compare/v$v1...v$v2",
@@ -131,52 +129,12 @@ class UpdateInfoUrlFinderTest extends CatsEffectSuite with Http4sDsl[MockEff] {
 
     // should canonicalize (drop last slash)
     assertEquals(
-      possibleVersionDiffs(gitHubFooBarRepo, versionUpdate)
+      urlsForUpdate(ForgeRepo(GitHub, uri"https://github.com/foo/bar/"), versionUpdate)
         .map(_.url.renderString),
       List(
         s"https://github.com/foo/bar/compare/v$v1...v$v2",
         s"https://github.com/foo/bar/compare/$v1...$v2",
         s"https://github.com/foo/bar/compare/release-$v1...release-$v2"
-      )
-    )
-
-    assertEquals(
-      possibleVersionDiffs(gitLabFooBarRepo, versionUpdate)
-        .map(_.url.renderString),
-      List(
-        s"https://gitlab.com/foo/bar/compare/v$v1...v$v2",
-        s"https://gitlab.com/foo/bar/compare/$v1...$v2",
-        s"https://gitlab.com/foo/bar/compare/release-$v1...release-$v2"
-      )
-    )
-
-    assertEquals(
-      possibleVersionDiffs(bitbucketFooBarRepo, versionUpdate)
-        .map(_.url.renderString),
-      List(
-        s"https://bitbucket.org/foo/bar/compare/v$v2..v$v1#diff",
-        s"https://bitbucket.org/foo/bar/compare/$v2..$v1#diff",
-        s"https://bitbucket.org/foo/bar/compare/release-$v2..release-$v1#diff"
-      )
-    )
-
-    assertEquals(
-      possibleVersionDiffs(ForgeRepo(GitHub, onPremForgeUrl.addPath("foo/bar")), versionUpdate)
-        .map(_.url.renderString),
-      List(
-        s"${onPremForgeUrl}foo/bar/compare/v$v1...v$v2",
-        s"${onPremForgeUrl}foo/bar/compare/$v1...$v2",
-        s"${onPremForgeUrl}foo/bar/compare/release-$v1...release-$v2"
-      )
-    )
-
-    assertEquals(
-      possibleVersionDiffs(ForgeRepo(AzureRepos, onPremForgeUrl.addPath("foo/bar")), versionUpdate)
-        .map(_.url.renderString),
-      List(
-        s"${onPremForgeUrl}foo/bar/branchCompare?baseVersion=GTv$v1&targetVersion=GTv$v2",
-        s"${onPremForgeUrl}foo/bar/branchCompare?baseVersion=GT$v1&targetVersion=GT$v2",
-        s"${onPremForgeUrl}foo/bar/branchCompare?baseVersion=GTrelease-$v1&targetVersion=GTrelease-$v2"
       )
     )
   }

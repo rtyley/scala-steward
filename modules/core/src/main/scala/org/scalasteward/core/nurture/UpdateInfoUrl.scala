@@ -20,21 +20,22 @@ import cats.Order
 import org.http4s.Uri
 
 /** A URL of a resource that provides additional information for an update. */
-sealed trait UpdateInfoUrl {
-  def url: Uri
+case class UpdateInfoUrl(typ: UpdateInfoUrlType, url: Uri) {
+  lazy val asMarkdown: String = s"[${typ.name}](${url.renderString})"
 }
 
-object UpdateInfoUrl {
-  final case class CustomChangelog(url: Uri) extends UpdateInfoUrl
-  final case class CustomReleaseNotes(url: Uri) extends UpdateInfoUrl
-  final case class GitHubReleaseNotes(url: Uri) extends UpdateInfoUrl
-  final case class VersionDiff(url: Uri) extends UpdateInfoUrl
+sealed class UpdateInfoUrlType(val name: String)
 
-  implicit val updateInfoUrlOrder: Order[UpdateInfoUrl] =
-    Order.by {
-      case GitHubReleaseNotes(url) => (0, url)
-      case CustomReleaseNotes(url) => (1, url)
-      case CustomChangelog(url)    => (2, url)
-      case VersionDiff(url)        => (3, url)
-    }
+object UpdateInfoUrl {
+  object CustomChangelog extends UpdateInfoUrlType("Changelog")
+  object CustomReleaseNotes extends UpdateInfoUrlType("Release Notes")
+  object GitHubReleaseNotes extends UpdateInfoUrlType("GitHub Release Notes")
+  object VersionDiff extends UpdateInfoUrlType("Version Diff")
+
+  val All: Seq[UpdateInfoUrlType] =
+    Seq(GitHubReleaseNotes, CustomReleaseNotes, CustomChangelog, VersionDiff)
+
+  implicit val updateInfoUrlTypeOrder: Order[UpdateInfoUrlType] = Order.by(All.indexOf)
+
+  implicit val updateInfoUrlOrder: Order[UpdateInfoUrl] = Order.by(uiu => (uiu.typ, uiu.url))
 }
