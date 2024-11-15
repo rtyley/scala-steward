@@ -195,7 +195,7 @@ object Update {
     groups.foldLeft((List.empty[Grouped], updates)) { case ((grouped, notGrouped), group) =>
       notGrouped.partition(group.matches) match {
         case (Nil, rest)     => (grouped, rest)
-        case (matched, rest) => (grouped :+ Grouped(group.name, group.title, matched), rest)
+        case (matched, rest) => (grouped :+ Grouped(group.name, group.title, matched.take(50)), rest)
       }
     }
 

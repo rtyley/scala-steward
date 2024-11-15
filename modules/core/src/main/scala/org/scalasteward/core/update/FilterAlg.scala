@@ -92,15 +92,11 @@ object FilterAlg {
   private def globalFilter(update: Update.ForArtifactId, repoConfig: RepoConfig): FilterResult =
     selectSuitableNextVersion(update, repoConfig).flatMap(checkVersionOrdering)
 
+  private val ignoredConfigs: Set[String] =
+    Set("phantom-js-jetty", "scalafmt", "scripted-sbt", "scripted-sbt-launch", "tut")
+
   def isDependencyConfigurationIgnored(dependency: Dependency): Boolean =
-    dependency.configurations.fold("")(_.toLowerCase) match {
-      case "phantom-js-jetty"    => true
-      case "scalafmt"            => true
-      case "scripted-sbt"        => true
-      case "scripted-sbt-launch" => true
-      case "tut"                 => true
-      case _                     => false
-    }
+    dependency.configurations.exists(config => ignoredConfigs.contains(config.toLowerCase))
 
   private def selectSuitableNextVersion(
       update: Update.ForArtifactId,
